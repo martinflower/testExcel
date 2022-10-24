@@ -4,15 +4,22 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,  Excel_tlb, Vcl.StdCtrls, Vcl.Buttons,system.win.ComObj ;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,  Excel_tlb, Vcl.StdCtrls, Vcl.Buttons,system.win.ComObj,
+  Vcl.OleServer, Excel2000 ;
 
 type
   TMainForm = class(TForm)
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
+    ExcelApplication1: TExcelApplication;
+    ExcelWorkbook1: TExcelWorkbook;
+    ExcelWorksheet1: TExcelWorksheet;
+    procedure FormCreate(Sender: TObject);
     procedure BitBtn1Click(Sender: TObject);
+    procedure BitBtn2Click(Sender: TObject);
   private
     { Déclarations privées }
+         LCID: Cardinal;
   public
     { Déclarations publiques }
   end;
@@ -44,11 +51,16 @@ begin
   result:=ExtractFilePath(application.exename);
 end;
 
+procedure TMainForm.FormCreate(Sender: TObject);
+begin
+     LCID := GetUserDefaultLCID;
+end;
+
 procedure TMainForm.BitBtn1Click(Sender: TObject);
 VAR Excel, {application}
-wbk,  {workbook}
-Wsh, {worksheet}
-range: Olevariant;
+wbk:olevariant; {workbook}
+Wsh:variant; {worksheet}
+range: olevariant;
 i:integer;
 LastDataExcel:integer;
 
@@ -213,17 +225,24 @@ begin
     Wbk:=Excel.Workbooks.Open(Nom_Classeur);
     Wsh:=Wbk.Worksheets.Item[1];
 
-    Wsh.visible:=true;
+    Excel.visible:=true;
     Wsh.Name:='Test1';
     wsh.activate;
     range:=Wsh.range['A1:I1'];
+//    Range := (Wsh.Range[Wsh.Cells.Item['A1'],Wsh.Cells.Item['I1']]) ;
     range.Font.Bold:=true;
     range.Font.Underline:=true;
 
    for i:=1 to 6 do
         wsh.cells[1,i].value:=Entete_colonne[i];
 
-   FormaterRange;
+   //FormaterRange;
+//   Wsh.range['A9:I19'].entirerow.hidden:=true;
+//   wsh.range['a9','I19'].Delete(xlshiftup);
+   wsh.Cells.Item[1,9].Delete(xlShiftToLeft);
+//   range.Delete(xlShiftToLeft);
+   sleep(5000);
+
   finally
 // Fermer Excel
 //   wbk.saveas(GetAppPath+'new');
@@ -233,5 +252,21 @@ begin
   end;
 End;
 
+procedure TMainForm.BitBtn2Click(Sender: TObject);
+begin
+     ExcelApplication1 := TExcelApplication.Create(Nil);
+    ExcelApplication1.Connect;
+    ExcelApplication1.Visible[LCID] := True; // will show newly connected Excel application // most of case not
+ExcelApplication1.Workbooks.Open ( GetAppPath+'new.xlsx' ,
+ EmptyParam , EmptyParam , EmptyParam , EmptyParam ,
+ EmptyParam , EmptyParam , EmptyParam , EmptyParam ,
+ EmptyParam , EmptyParam , EmptyParam , EmptyParam , 0 );
+   //(ExcelApplication1.Worksheets['test1'] as _Worksheet).Activate(LCID);
+    (ExcelApplication1.Worksheets['test1'] as _Worksheet).range['a9','I19'].Delete(xlshiftup);
+///    ExcelApplication1.Save;
+    ExcelApplication1.Disconnect;
+    ExcelApplication1.Quit;
+    FreeAndNil(ExcelApplication1);
+end;
 
 end.
